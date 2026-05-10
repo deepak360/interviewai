@@ -34,3 +34,5 @@ prisma/migrations/dev.db
 
 # Test coverage
 coverage/
+
+git-personal-token
