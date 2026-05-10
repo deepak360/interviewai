@@ -23,6 +23,7 @@ model User {
   suspendedAt   DateTime?
 
   sessions      Session[]
+  questionBanks QuestionBank[]
 
   @@map("users")
 }
@@ -39,4 +40,19 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+model QuestionBank {
+  id         String   @id @default(cuid())
+  userId     String
+  jdText     String
+  resumeText String   @default("")
+  questions  Json
+  topics     String[]
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("question_banks")
 }
