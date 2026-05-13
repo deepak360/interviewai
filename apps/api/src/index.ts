@@ -3,6 +3,7 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import authRoutes from './routes/auth.routes'
 import bankRoutes from './routes/bank.routes'
+import interviewRoutes from './routes/interview.routes'
 import { errorHandler } from './middleware/errorHandler'
 
 const app = express()
@@ -18,6 +19,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/banks', bankRoutes)
+app.use('/api/interviews', interviewRoutes)
 app.use(errorHandler)
 
 app.listen(PORT, () => {

@@ -5,7 +5,6 @@ import { db } from '../lib/db'
 import { AppError } from '../lib/errors'
 
 const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET!
-const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET!
 
 export const AuthService = {
   async register(email: string, password: string, name: string) {
@@ -101,5 +100,54 @@ export const AuthService = {
       where: { tokenHash },
       data: { revokedAt: new Date() }
     })
+  },
+
+  async forgotPassword(email: string) {
+    const user = await db.user.findUnique({ where: { email } })
+    // Always return success to prevent email enumeration
+    if (!user) return
+
+    // Invalidate any existing reset tokens for this user
+    await db.passwordReset.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() }
+    })
+
+    const token = crypto.randomUUID()
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+
+    await db.passwordReset.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+      }
+    })
+
+    const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password/${token}`
+    // In production, send email here. Log for local dev.
+    console.log(`[Password Reset] ${email} → ${resetUrl}`)
+  },
+
+  async resetPassword(token: string, newPassword: string) {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+
+    const reset = await db.passwordReset.findUnique({
+      where: { tokenHash },
+      include: { user: true }
+    })
+
+    if (!reset || reset.usedAt || reset.expiresAt < new Date()) {
+      throw new AppError('Reset link is invalid or expired', 400)
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12)
+
+    await db.$transaction([
+      db.user.update({ where: { id: reset.userId }, data: { passwordHash } }),
+      db.passwordReset.update({ where: { id: reset.id }, data: { usedAt: new Date() } }),
+      // Revoke all sessions so attacker can't stay logged in
+      db.session.updateMany({ where: { userId: reset.userId }, data: { revokedAt: new Date() } }),
+    ])
   }
 }

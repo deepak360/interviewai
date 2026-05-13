@@ -24,3 +24,8 @@ See CLAUDE.md for full setup instructions.
 
 ## Status
 Phase 0 — Project scaffold in progress.
+
+## Run the project
+docker-compose up --build
+pnpm --filter api dev
+pnpm --filter web dev

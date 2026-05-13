@@ -24,6 +24,15 @@ const LoginSchema = z.object({
   password: z.string()
 })
 
+const ForgotPasswordSchema = z.object({
+  email: z.string().email()
+})
+
+const ResetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8)
+})
+
 router.post('/register', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = RegisterSchema.parse(req.body)
@@ -71,6 +80,26 @@ router.post('/logout', async (req: Request, res: Response, next: NextFunction) =
 router.get('/me', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     res.json({ data: { user: req.user }, error: null })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/forgot-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = ForgotPasswordSchema.parse(req.body)
+    await AuthService.forgotPassword(email)
+    res.json({ data: { message: 'If that email exists, a reset link has been sent.' }, error: null })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token, password } = ResetPasswordSchema.parse(req.body)
+    await AuthService.resetPassword(token, password)
+    res.json({ data: { message: 'Password updated.' }, error: null })
   } catch (err) {
     next(err)
   }

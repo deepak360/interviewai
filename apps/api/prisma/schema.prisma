@@ -22,10 +22,26 @@ model User {
   createdAt     DateTime  @default(now())
   suspendedAt   DateTime?
 
-  sessions      Session[]
-  questionBanks QuestionBank[]
+  sessions        Session[]
+  questionBanks   QuestionBank[]
+  mockInterviews  MockInterview[]
+  passwordResets  PasswordReset[]
 
   @@map("users")
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_resets")
 }
 
 model Session {
@@ -51,8 +67,43 @@ model QuestionBank {
   topics     String[]
   createdAt  DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mockInterviews MockInterview[]
 
   @@index([userId])
   @@map("question_banks")
+}
+
+model MockInterview {
+  id        String    @id @default(cuid())
+  userId    String
+  bankId    String
+  persona   String
+  status    String    @default("pending")
+  createdAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bank    QuestionBank    @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  answers InterviewAnswer[]
+
+  @@index([userId])
+  @@map("mock_interviews")
+}
+
+model InterviewAnswer {
+  id          String   @id @default(cuid())
+  interviewId String
+  questionId  String
+  question    String
+  idealAnswer String
+  transcript  String
+  score       Int?
+  feedback    Json?
+  createdAt   DateTime @default(now())
+
+  interview MockInterview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([interviewId])
+  @@map("interview_answers")
 }
